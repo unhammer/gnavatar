@@ -1,0 +1,55 @@
+#+TITLE: gnavatar
+
+[[https://melpa.org/#/gnavatar][https://melpa.org/packages/gnavatar-badge.svg]]
+[[https://stable.melpa.org/#/gnavatar][https://stable.melpa.org/packages/gnavatar-badge.svg]]
+
+* Use as library to insert avatars
+
+#+begin_src emacs-lisp
+  (require 'gnavatar)
+  (let ((buf (current-buffer)))
+    (gnavatar-retrieve
+     "a-gravatar-user@example.org"
+     (lambda (i)
+       (with-current-buffer buf
+         (insert-image i)))))
+#+end_src
+
+For e-mails that exist in Gravatar, we'll get a result from
+Gravatar. If they aren't in Gravatar, it'll try BBDB, using the
+=image-uri= xfield.
+
+Customize =gnavatar-providers= to change the priority (if you want to
+try BBDB first).
+
+* Interactive helpers to add images to BBDB
+
+#+begin_src emacs-lisp
+  (require 'gnavatar-bbdb)
+  (define-key bbdb-mode-map (kbd "y") #'gnavatar-bbdb-add-clipboard-image-contents)
+  (define-key bbdb-mode-map (kbd "U") #'gnavatar-bbdb-add-clipboard-image-url)
+#+end_src
+
+Now you can copy an image and hit =y= or an image url and hit =U= on
+a BBDB entry and it'll fill the image-uri field with that.
+
+
+If you want to show the images in BBDB:
+#+begin_src emacs-lisp
+  (defun my-bbdb-image-size-ok (image)
+    "Is IMAGE small enough?"
+    (let* ((size (image-size image))
+           (w (car size))
+           (h (cdr size)))
+      (and (< w 10) (< h 10))))
+
+  (defun my-bbdb-maybe-insert-image (record)
+    "If RECORD has an image that's small enough, insert it."
+    (when-let ((image (gnavatar-bbdb-create-image record)))
+      (when (my-bbdb-image-size-ok image)
+        (insert " ")
+        (insert-image image))))
+
+  (advice-add #'bbdb-display-name-organization :after #'my-bbdb-maybe-insert-image)
+#+end_src
+
