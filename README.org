@@ -3,7 +3,24 @@
 [[https://melpa.org/#/gnavatar][https://melpa.org/packages/gnavatar-badge.svg]]
 [[https://stable.melpa.org/#/gnavatar][https://stable.melpa.org/packages/gnavatar-badge.svg]]
 
+* For users who want to override gravatar
+
+If you want to use this instead of plain Gravatar everywhere, you can
+use:
+#+begin_src emacs-lisp
+(advice-add 'gravatar-retrieve :around #'gnavatar-override)
+#+end_src
+
+For e-mails that exist in Gravatar, you'll get a result from
+Gravatar. If they aren't in Gravatar, it'll try BBDB, using the
+=image-uri= xfield.
+
+Customize =gnavatar-providers= to change the priority (if you want to
+try BBDB first).
+
 * Use as library to insert avatars
+
+The API is exactly the same as gravatar.el:
 
 #+begin_src emacs-lisp
   (require 'gnavatar)
@@ -15,12 +32,7 @@
          (insert-image i)))))
 #+end_src
 
-For e-mails that exist in Gravatar, we'll get a result from
-Gravatar. If they aren't in Gravatar, it'll try BBDB, using the
-=image-uri= xfield.
-
-Customize =gnavatar-providers= to change the priority (if you want to
-try BBDB first).
+If you use it like this, your end-users don't have to add any advice.
 
 * Interactive helpers to add images to BBDB
 

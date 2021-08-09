@@ -42,6 +42,19 @@
   :tag "gnavatar"
   :group 'comm)
 
+(defvar gnavatar-calling nil)
+
+(defun gnavatar-override (orig-fn &rest rest)
+  "Apply `gnavatar-retrieve' to REST.
+Or use ORIG-FN if we were called by `gnavatar-retrieve' (to avoid
+a loop if gnavatar wants to use the function we're overriding as
+a provider).  Meant to be used as around-advice for
+`gravatar-retrieve', e.g. (advice-add 'gravatar-retrieve :around
+#'gnavatar-override)."
+  (if gnavatar-calling
+      (apply orig-fn rest)
+    (apply #'gnavatar-retrieve rest)))
+
 (defcustom gnavatar-providers (list #'gravatar-retrieve
                                     #'gnavatar-bbdb-retrieve)
   "Prioritised list of avatar providers.
@@ -97,11 +110,12 @@ where AVATAR is either an image descriptor, or the symbol
 Note: Providers may change the current buffer, so use
 `with-current-buffer' to insert into the buffer you're in when
 calling this."
-  (gnavatar-work 'error ; we haven't got a result yet, so try the next
-                 mail-address
-                 gnavatar-providers
-                 callback
-                 cbargs))
+  (let ((gnavatar-calling t))
+    (gnavatar-work 'error ; we haven't got a result yet, so try the next
+                   mail-address
+                   gnavatar-providers
+                   callback
+                   cbargs)))
 
 (provide 'gnavatar)
 ;;; gnavatar.el ends here
