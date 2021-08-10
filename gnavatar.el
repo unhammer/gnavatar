@@ -51,6 +51,46 @@ return the symbol 'error in order to move to the next one in the list."
   :type '(list function))
 
 
+;;;;;;;;;;;;;;;;;;;;;
+;; GitHub provider ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+
+(defvar gnavatar-github-size 48)
+
+(defun gnavatar-github-username-retrieve (github-username callback &optional cbargs)
+  "Get avatar of GITHUB-USERNAME.
+
+Unfortunately, Github doesn't support looking up by
+e-mail.  Other than the first argument, use this function as you
+would `gnavatar-retrieve', passing a CALLBACK that expects an
+image (or 'error) and CBARGS."
+  ;; Using lexical binding instead of threading cbargs through url-retrieve
+  (url-retrieve
+   (format "https://api.github.com/users/%s" github-username)
+   (lambda (_status)
+     (search-forward "\n\n")
+     (if-let* ((j (json-read))
+               (avatar-url (cdr (assoc 'avatar_url j))))
+         ;; TODO: s=48 doesn't always make the image smaller :-/
+         (url-retrieve (format "%s&s=%d"
+                               avatar-url
+                               gnavatar-github-size)
+                       (lambda (_astatus)
+                         (apply callback
+                                (if (search-forward "\n\n" nil 'noerror)
+                                    (create-image (buffer-substring-no-properties
+                                                   (point) (point-max))
+                                                  nil
+                                                  'data)
+                                  'error)
+                                cbargs)))
+       (if j
+           (message "Couldn't find avatar of github user %s" github-username)
+         (message "Couldn't parse JSON of github user %s" github-username))
+       (apply callback 'error cbargs)))))
+
+
 ;;;;;;;;;;;;;;;;;;;
 ;; BBDB provider ;;
 ;;;;;;;;;;;;;;;;;;;
