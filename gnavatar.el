@@ -42,19 +42,6 @@
   :tag "gnavatar"
   :group 'comm)
 
-(defvar gnavatar-calling nil)
-
-(defun gnavatar-override (orig-fn &rest rest)
-  "Apply `gnavatar-retrieve' to REST.
-Or use ORIG-FN if we were called by `gnavatar-retrieve' (to avoid
-a loop if gnavatar wants to use the function we're overriding as
-a provider).  Meant to be used as around-advice for
-`gravatar-retrieve', e.g. (advice-add 'gravatar-retrieve :around
-#'gnavatar-override)."
-  (if gnavatar-calling
-      (apply orig-fn rest)
-    (apply #'gnavatar-retrieve rest)))
-
 (defcustom gnavatar-providers (list #'gravatar-retrieve
                                     #'gnavatar-bbdb-retrieve)
   "Prioritised list of avatar providers.
@@ -62,6 +49,11 @@ They should accept the same arguments as `gravatar-retrieve', and
 return the symbol 'error in order to move to the next one in the list."
   :group 'gnavatar
   :type '(list function))
+
+
+;;;;;;;;;;;;;;;;;;;
+;; BBDB provider ;;
+;;;;;;;;;;;;;;;;;;;
 
 (defun gnavatar-bbdb-create-image (record)
   "Create an image from RECORD, if it has an image-uri."
@@ -84,6 +76,24 @@ CALLBACK and CBARGS as in `gravatar-retrieve'."
   (if-let ((image (gnavatar-bbdb-find-image mail-address)))
       (apply callback image cbargs)
     'error))
+
+
+;;;;;;;;;;;;;;;;;;;;;;
+;; Gnavatar workers ;;
+;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar gnavatar-calling nil)
+
+(defun gnavatar-override (orig-fn &rest rest)
+  "Apply `gnavatar-retrieve' to REST.
+Or use ORIG-FN if we were called by `gnavatar-retrieve' (to avoid
+a loop if gnavatar wants to use the function we're overriding as
+a provider).  Meant to be used as around-advice for
+`gravatar-retrieve', e.g. (advice-add 'gravatar-retrieve :around
+#'gnavatar-override)."
+  (if gnavatar-calling
+      (apply orig-fn rest)
+    (apply #'gnavatar-retrieve rest)))
 
 (defun gnavatar-work (result search-term providers callback &optional cbargs)
   "Callback wrapper.
