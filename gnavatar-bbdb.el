@@ -25,12 +25,14 @@
 
 ;;; Commentary:
 
-;;; Helpers for adding image-uri's to BBDB entries from clipboard or
-;;; URLs.  Requires ImageMagick (convert) for resizing.
+;;; Helpers for adding image-uri's to BBDB entries from clipboard,
+;;; Github or URLs.  Requires ImageMagick (convert) for resizing
+;;; clipboard/URL contents; uses Github avatars unresized.
 
-;;; Interactive functions:
+;;; Interactive functions, call them in BBDB on a record:
 ;;; gnavatar-bbdb-add-clipboard-image-contents
 ;;; gnavatar-bbdb-add-clipboard-image-url
+;;; gnavatar-bbdb-add-github-image
 
 ;;; Code:
 
@@ -116,6 +118,46 @@ The image will be base64-encoded and stored in the image-uri field."
                          (bbdb-record-field r 'name))
                 (bbdb-insert-field r field img64)))
             records)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Adding from Github ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun gnavatar-bbdb-add-github-image (record github-username)
+  "Add image-uri field to RECORD using GITHUB-USERNAME.
+If called interactively, get GITHUB-USERNAME from RECORD if it's
+there, otherwise ask for it."
+  (interactive
+   (let* ((_ (bbdb-editable))
+          (record (or (bbdb-current-record)
+                      (error "Point not on a record")))
+          (completion-ignore-case t))
+     (list record
+           (or (bbdb-record-field record 'github)
+               (let ((u (bbdb-read-field record 'github current-prefix-arg)))
+                 (bbdb-insert-field record 'github u)
+                 u)))))
+  (gnavatar-bbdb-image-from-github (list record) github-username))
+
+(defun gnavatar-bbdb-image-from-github (records-to-set github-username)
+  "Snatch avatar of GITHUB-USERNAME and put into RECORDS-TO-SET in BBDB."
+  (lexical-let* ((field 'image-uri)
+                 (records (cl-remove-if
+                           (lambda (r)
+                             (when (bbdb-record-field r field)
+                               (message "%s already has an %s, not setting"
+                                        (bbdb-record-field r 'name)
+                                        field)
+                               t))
+                           records-to-set)))
+    (if records
+        (gnavatar-github-username-retrieve
+         github-username
+         (lambda (img)
+           (unless (eq img 'error)
+             (gnavatar-bbdb-add-image-uri records (image-property img :data)))))
+      (message "None of the records were missing image-uri"))))
 
 (provide 'gnavatar-bbdb)
 ;;; gnavatar-bbdb.el ends here
