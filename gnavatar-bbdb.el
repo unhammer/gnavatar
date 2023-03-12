@@ -79,8 +79,8 @@
 
 (defun gnavatar-bbdb-add-image-from-url (records url)
   "Retrieve URL image link, store in image-uri of RECORDS in BBDB."
-  (lexical-let* ((field 'image-uri)
-                 (timeout gnavatar-bbdb-url-timeout))
+  (let* ((field 'image-uri)
+         (timeout gnavatar-bbdb-url-timeout))
     (with-current-buffer (url-retrieve-synchronously url
                                                      'silent
                                                      'inhibit-cookies
@@ -142,15 +142,15 @@ there, otherwise ask for it."
 
 (defun gnavatar-bbdb-image-from-github (records-to-set github-username)
   "Snatch avatar of GITHUB-USERNAME and put into RECORDS-TO-SET in BBDB."
-  (lexical-let* ((field 'image-uri)
-                 (records (cl-remove-if
-                           (lambda (r)
-                             (when (bbdb-record-field r field)
-                               (message "%s already has an %s, not setting"
-                                        (bbdb-record-field r 'name)
-                                        field)
-                               t))
-                           records-to-set)))
+  (let* ((field 'image-uri)
+         (records (cl-remove-if
+                   (lambda (r)
+                     (when (bbdb-record-field r field)
+                       (message "%s already has an %s, not setting"
+                                (bbdb-record-field r 'name)
+                                field)
+                       t))
+                   records-to-set)))
     (if records
         (gnavatar-github-username-retrieve
          github-username
@@ -158,6 +158,8 @@ there, otherwise ask for it."
            (unless (eq img 'error)
              (gnavatar-bbdb-add-image-uri records (image-property img :data)))))
       (message "None of the records were missing image-uri"))))
+
+;; TODO: gnavatar-bbdb-image-add-dwim
 
 (provide 'gnavatar-bbdb)
 ;;; gnavatar-bbdb.el ends here
